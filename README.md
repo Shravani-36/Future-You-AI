@@ -60,7 +60,8 @@ streamlit run app.py
 
 ## 📸 Output
 
-(Screenshot (9).png)
+![App Screenshot](assets/App_Screenshot.png)
+
 
 ---
 
