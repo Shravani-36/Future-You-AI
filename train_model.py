@@ -1,80 +1,46 @@
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, accuracy_score
-import joblib
+@st.cache_resource
+def train_models():
+    import numpy as np
+    import pandas as pd
 
-# -----------------------------
-# Load Dataset
-# -----------------------------
-df = pd.read_csv("future_life_dataset_updated.csv")
+    np.random.seed(42)
+    rows = 1000
 
-# -----------------------------
-# Select Required Columns ONLY
-# -----------------------------
-required_cols = [
-    "age", "sleep_hours", "work_hours", "exercise_days",
-    "learning_hours", "savings_rate", "stress_level",
-    "future_income", "burnout_risk"
-]
+    # Generate synthetic clean dataset
+    df = pd.DataFrame({
+        "age": np.random.randint(18, 40, rows),
+        "sleep_hours": np.random.uniform(5, 9, rows),
+        "work_hours": np.random.uniform(6, 12, rows),
+        "exercise_days": np.random.randint(0, 7, rows),
+        "learning_hours": np.random.uniform(1, 8, rows),
+        "savings_rate": np.random.uniform(5, 40, rows),
+        "stress_level": np.random.randint(1, 10, rows)
+    })
 
-df = df[required_cols]
+    # Targets
+    df["future_income"] = (
+        df["learning_hours"] * 5000 +
+        df["savings_rate"] * 1500 -
+        df["stress_level"] * 2000 +
+        np.random.normal(0, 3000, rows)
+    )
 
-# -----------------------------
-# Clean Data
-# -----------------------------
-for col in df.columns:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
+    df["burnout_risk"] = (
+        (df["stress_level"] + df["work_hours"]/2 - df["sleep_hours"]).apply(
+            lambda x: 2 if x > 10 else (1 if x > 6 else 0)
+        )
+    )
 
-df = df.dropna()
+    X = df.drop(["future_income", "burnout_risk"], axis=1)
+    y_income = df["future_income"]
+    y_burnout = df["burnout_risk"]
 
-# Safety check
-if df.shape[0] < 10:
-    raise ValueError("Dataset is too small or corrupted")
+    from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-# -----------------------------
-# Split Features & Targets
-# -----------------------------
-X = df.drop(["future_income", "burnout_risk"], axis=1)
-y_income = df["future_income"]
-y_burnout = df["burnout_risk"]
+    income_model = RandomForestRegressor(n_estimators=100, random_state=42)
+    income_model.fit(X, y_income)
 
-# -----------------------------
-# Train/Test Split
-# -----------------------------
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y_income, test_size=0.2, random_state=42
-)
+    burnout_model = RandomForestClassifier(n_estimators=120, random_state=42)
+    burnout_model.fit(X, y_burnout)
 
-X_train_b, X_test_b, y_train_b, y_test_b = train_test_split(
-    X, y_burnout, test_size=0.2, random_state=42
-)
-
-# -----------------------------
-# Train Models
-# -----------------------------
-income_model = RandomForestRegressor(n_estimators=100, random_state=42)
-income_model.fit(X_train, y_train)
-
-burnout_model = RandomForestClassifier(n_estimators=120, random_state=42)
-burnout_model.fit(X_train_b, y_train_b)
-
-# -----------------------------
-# Evaluate Models
-# -----------------------------
-income_pred = income_model.predict(X_test)
-burnout_pred = burnout_model.predict(X_test_b)
-
-r2 = r2_score(y_test, income_pred)
-accuracy = accuracy_score(y_test_b, burnout_pred)
-
-print("📈 Income Model R2 Score:", round(r2 * 100, 2), "%")
-print("🔥 Burnout Model Accuracy:", round(accuracy * 100, 2), "%")
-
-# -----------------------------
-# Save Models
-# -----------------------------
-joblib.dump(income_model, "income_model.pkl")
-joblib.dump(burnout_model, "burnout_model.pkl")
-
-print("✅ Models trained and saved successfully!")
+    return income_model, burnout_model
