@@ -1,15 +1,30 @@
 import streamlit as st
-import joblib
 import pandas as pd
-
-# -----------------------------
-# Load models
-# -----------------------------
+import numpy as np
+import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
+# -----------------------------
+# Page Config
+# -----------------------------
+st.set_page_config(page_title="AI Lifestyle Analytics", layout="wide")
+
+st.title("🚀 AI-Powered Lifestyle Analytics & Burnout Prediction System")
+st.markdown("Understand your lifestyle patterns and predict future outcomes using AI")
+
+st.markdown("---")
+
+# -----------------------------
+# Train Models (WITH DATA CLEANING)
+# -----------------------------
 @st.cache_resource
 def train_models():
     df = pd.read_csv("future_life_dataset_updated.csv")
+
+    # 🔥 Clean dataset
+    df = df.dropna()
+    df = df.apply(pd.to_numeric, errors='coerce')
+    df = df.dropna()
 
     X = df.drop(["future_income", "burnout_risk"], axis=1)
     y_income = df["future_income"]
@@ -24,16 +39,6 @@ def train_models():
     return income_model, burnout_model
 
 income_model, burnout_model = train_models()
-
-# -----------------------------
-# Page Config
-# -----------------------------
-st.set_page_config(page_title="AI Lifestyle Analytics", layout="wide")
-
-st.title("🚀 AI-Powered Lifestyle Analytics & Burnout Prediction System")
-st.markdown("Understand your lifestyle patterns and predict future outcomes using AI")
-
-st.markdown("---")
 
 # -----------------------------
 # Input Mode
@@ -80,28 +85,29 @@ features = pd.DataFrame([{
 # -----------------------------
 if st.button("🔮 Analyze My Lifestyle"):
 
+    with st.spinner("Analyzing your lifestyle... 🤖"):
+        time.sleep(1)
+
     income = income_model.predict(features)[0]
     burnout = burnout_model.predict(features)[0]
 
     risk_map = {0: "Low", 1: "Medium", 2: "High"}
-    risk_label = risk_map[burnout]
+    risk_label = risk_map.get(burnout, "Unknown")
 
     # -----------------------------
-    # Top Metrics
+    # Metrics
     # -----------------------------
     col1, col2 = st.columns(2)
-
     col1.metric("💰 Predicted Income", f"₹{int(income)}")
     col2.metric("🔥 Burnout Risk", risk_label)
 
     st.markdown("---")
 
     # -----------------------------
-    # 🔥 PERFECT LIFE SCORE (NEW LOGIC)
+    # Life Score (Improved)
     # -----------------------------
     score = 0
 
-    # Sleep (ideal 7–8)
     if 7 <= sleep <= 8:
         score += 20
     elif 6 <= sleep < 7 or 8 < sleep <= 9:
@@ -109,7 +115,6 @@ if st.button("🔮 Analyze My Lifestyle"):
     else:
         score += 5
 
-    # Work (ideal 7–9)
     if 7 <= work <= 9:
         score += 20
     elif 6 <= work < 7 or 9 < work <= 10:
@@ -117,7 +122,6 @@ if st.button("🔮 Analyze My Lifestyle"):
     else:
         score += 5
 
-    # Exercise
     if exercise >= 4:
         score += 15
     elif exercise >= 2:
@@ -125,7 +129,6 @@ if st.button("🔮 Analyze My Lifestyle"):
     else:
         score += 5
 
-    # Learning
     if learning >= 6:
         score += 15
     elif learning >= 3:
@@ -133,7 +136,6 @@ if st.button("🔮 Analyze My Lifestyle"):
     else:
         score += 5
 
-    # Savings
     if savings >= 30:
         score += 15
     elif savings >= 15:
@@ -141,7 +143,6 @@ if st.button("🔮 Analyze My Lifestyle"):
     else:
         score += 5
 
-    # Stress (lower is better)
     if stress <= 3:
         score += 15
     elif stress <= 6:
@@ -156,7 +157,7 @@ if st.button("🔮 Analyze My Lifestyle"):
     st.write(f"Score: **{score}/100**")
 
     # -----------------------------
-    # Personalized Suggestions
+    # Suggestions
     # -----------------------------
     st.markdown("## 💡 Personalized Suggestions")
 
@@ -182,16 +183,14 @@ if st.button("🔮 Analyze My Lifestyle"):
             st.write("✔", s)
 
     # -----------------------------
-    # AI Insights (SMART)
+    # AI Insights
     # -----------------------------
     st.markdown("## 🧠 AI Insights")
 
     if burnout == 2:
         st.error("🔥 High burnout risk detected due to stress and workload imbalance")
-
     elif burnout == 1:
         st.warning("⚠ Moderate burnout risk — lifestyle adjustments recommended")
-
     else:
         st.success("✅ Low burnout risk — maintain your current habits")
 
