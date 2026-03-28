@@ -5,10 +5,25 @@ import pandas as pd
 # -----------------------------
 # Load models
 # -----------------------------
-import joblib
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-income_model = joblib.load("models/income_model.pkl")
-burnout_model = joblib.load("models/burnout_model.pkl")
+@st.cache_resource
+def train_models():
+    df = pd.read_csv("future_life_dataset_updated.csv")
+
+    X = df.drop(["future_income", "burnout_risk"], axis=1)
+    y_income = df["future_income"]
+    y_burnout = df["burnout_risk"]
+
+    income_model = RandomForestRegressor(n_estimators=100, random_state=42)
+    income_model.fit(X, y_income)
+
+    burnout_model = RandomForestClassifier(n_estimators=120, random_state=42)
+    burnout_model.fit(X, y_burnout)
+
+    return income_model, burnout_model
+
+income_model, burnout_model = train_models()
 
 # -----------------------------
 # Page Config
